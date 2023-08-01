@@ -36,9 +36,9 @@ resource "vsphere_virtual_machine" "vm" {
   resource_pool_id = data.vsphere_compute_cluster.cluster.resource_pool_id
   datastore_id     = data.vsphere_datastore.datastore.id
   folder = var.vsphere_folder
-  num_cpus         = 1
+  num_cpus         = 2
   cpu_hot_add_enabled = true
-  memory           = 1024
+  memory           = 4096
   memory_hot_add_enabled = true
   guest_id         = "rhel8_64Guest"
   wait_for_guest_net_timeout = 0
@@ -47,9 +47,12 @@ resource "vsphere_virtual_machine" "vm" {
   }
   disk {
     label = "disk0"
-    size  = 20
+    size  = 100
     eagerly_scrub = true
     thin_provisioned = false
+  }
+  cdrom {
+    client_device = true
   }
   
 }
