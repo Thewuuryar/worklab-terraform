@@ -41,13 +41,13 @@ source "vsphere-iso" "rhel8" {
        " ip=${var.vm_network_ip}::${var.vm_network_gateway}:${var.vm_network_mask}:${var.vm_hostname}:ens192:none inst.text",
        "<enter>"
     ]
+
+    shutdown_command = "sudo su root -c \"userdel -rf packer; rm /etc/sudoers.d/packer; /sbin/shutdown -hP now\""
+
 }
 
 build {
     sources = [
         "source.vsphere-iso.rhel8"
     ]
-    post-processor "shell-local" {
-        inline
-    }
 }
