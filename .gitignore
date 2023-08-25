@@ -5,6 +5,8 @@
 *.tfstate
 *.tfstate.*
 
+*windows_amd64*
+
 # Crash log files
 crash.log
 crash.*.log
