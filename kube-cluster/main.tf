@@ -1,6 +1,6 @@
 provider "vsphere" {
-  user           = var.vsphere_user
-  password       = var.vsphere_password
+  user           = var.vsphere_svc_user_name
+  password       = var.vsphere_svc_user_password
   vsphere_server = var.vsphere_server
 
   allow_unverified_ssl = true
@@ -36,19 +36,20 @@ data "vsphere_virtual_machine" "template" {
   datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 
-resource "vsphere_virtual_machine" "kubecluster" {
-  for_each = var.vm_kubecluster_map
+resource "vsphere_virtual_machine" "servers" {
+  for_each = { for vm in var.vm_list: vm.name => vm } 
 
-  name = each.key
+  name = each.value.name
   resource_pool_id = data.vsphere_compute_cluster.cluster.resource_pool_id
   datastore_id = data.vsphere_datastore.datastore.id
 
-  folder = var.vsphere_folder
+  folder = var.vsphere_destination_folder
 
-  num_cpus = var.vm_num_cpus
-  cpu_hot_add_enabled = var.vm_cpu_hot_add_enabled
-  memory = var.vm_memory
-  memory_hot_add_enabled = var.vm_memory_hot_add_enabled
+  num_cpus = each.value.num_cpus
+  cpu_hot_add_enabled = each.value.cpu_hot_add_enabled
+
+  memory = each.value.memory
+  memory_hot_add_enabled = each.value.memory_hot_add_enabled
 
   guest_id = data.vsphere_virtual_machine.template.guest_id
   scsi_type = data.vsphere_virtual_machine.template.scsi_type
@@ -75,16 +76,16 @@ resource "vsphere_virtual_machine" "kubecluster" {
     template_uuid = data.vsphere_virtual_machine.template.id
     customize {
       linux_options {
-        host_name = each.key
-        domain = var.vm_domain
+        host_name = each.value.name
+        domain = each.value.domain
       }
       network_interface {
-        ipv4_address = each.value
-        ipv4_netmask = var.vm_ipv4_netmask
+        ipv4_address = each.value.ipv4_address
+        ipv4_netmask = each.value.ipv4_netmask
       }
-      ipv4_gateway = var.vm_ipv4_gateway
-      dns_server_list = [ var.vm_dns_server_1, var.vm_dns_server_2, var.vm_dns_server_3 ]
-      dns_suffix_list = [ var.vm_dns_suffix_1 ]
+      ipv4_gateway = each.value.ipv4_gateway
+      dns_server_list = each.value.dns_server_list
+      dns_suffix_list = each.value.dns_suffix_list
     }
   }
   
@@ -98,20 +99,22 @@ resource "vsphere_virtual_machine" "kubecluster" {
     type = "ssh"
     user = var.vm_provisioner_username
     password = var.vm_provisioner_password
-    host = each.value
+    host = each.value.ipv4_address
   }
 
   provisioner "file" {
-    source      = "./scripts"
+    source = "../common/copy_files"
     destination = "/tmp"
   }
 
   provisioner "remote-exec" {
     inline = [
-      "chmod -R +x /tmp/scripts/",
-      "/tmp/scripts/reset-machine-id.sh",
-      "/tmp/scripts/create-local-user.sh",
-      "sudo rm -rf /tmp/scripts"
+      "chmod -R +x /tmp/copy_files/scripts/",
+      "sudo /tmp/copy_files/scripts/reset-machine-id.sh",
+      "sudo /tmp/copy_files/scripts/customize-profiles.sh",
+      "sudo /tmp/copy_files/scripts/create-local-user.sh",
+      "sudo /tmp/copy_files/scripts/update-sshd_config.sh",
+      "sudo rm -rf /tmp/copy_files"
     ]
     
   }

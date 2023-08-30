@@ -103,16 +103,18 @@ resource "vsphere_virtual_machine" "servers" {
   }
 
   provisioner "file" {
-    source      = "./scripts"
+    source = "../common/copy_files"
     destination = "/tmp"
   }
 
   provisioner "remote-exec" {
     inline = [
-      "chmod -R +x /tmp/scripts/",
-      "/tmp/scripts/reset-machine-id.sh",
-      "/tmp/scripts/create-local-user.sh",
-      "sudo rm -rf /tmp/scripts"
+      "chmod -R +x /tmp/copy_files/scripts/",
+      "sudo /tmp/copy_files/scripts/reset-machine-id.sh",
+      "sudo /tmp/copy_files/scripts/customize-profiles.sh",
+      "sudo /tmp/copy_files/scripts/create-local-user.sh",
+      "sudo /tmp/copy_files/scripts/update-sshd_config.sh",
+      "sudo rm -rf /tmp/copy_files"
     ]
     
   }
